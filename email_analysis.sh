@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 ########################
 #Labor 1
 #Author Yannick Schilling
@@ -6,7 +6,7 @@
 
 
 function show_help {
-    echo "Usage: email_analysis.sh [-h|--help] [-c|--company] [-e|--email]"
+    echo "Usage: email_analysis.sh [-h|--help] [-c|--company] [FILE] [-e|--email] [FILE]"
     echo ""
     echo "Analyses the mailing list according to the commands as follows:"
     echo ""
