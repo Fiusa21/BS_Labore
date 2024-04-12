@@ -4,6 +4,7 @@
 #Author Yannick Schilling
 ########################
 
+
 function show_help {
     echo "Usage: email_analysis.sh [-h|--help] [-c|--company] [-e|--email]"
     echo ""
@@ -17,11 +18,11 @@ function show_help {
 
 #search for headers including the mail-adress. Space after "From" and including "@"
 count_mail(){
-  grep "^From .*@" gcc_2024.02.txt | cut -d " " -f 2 | cut -d " " -f 1 | sort -s | uniq -c | sort -rnr
+  grep "^From .*@" "$FILE" | cut -d " " -f 2 | cut -d " " -f 1 | sort -s | uniq -c | sort -rnr
 }
 
 count_company(){
-  grep "^From .*@" gcc_2024.02.txt | cut -d "@" -f 2 | cut -d " " -f 1 | sort -s | uniq -c | sort -rnr
+  grep "^From .*@" "$FILE" | cut -d "@" -f 2 | cut -d " " -f 1 | sort -s | uniq -c | sort -rnr
 }
 
 while test $# -gt 0 ; do #while Argument > 0; do
@@ -30,10 +31,10 @@ while test $# -gt 0 ; do #while Argument > 0; do
         show_help
         exit
         ;;
-    -e|--email)
+    -e|--email) FILE="$2"; shift
         count_mail
         ;;
-    -c|--company)
+    -c|--company) FILE="$2"; shift
         count_company
         ;;
     *)#exception for illegal input
