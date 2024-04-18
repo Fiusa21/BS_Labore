@@ -1,9 +1,8 @@
 #!/bin/bash
 ########################
-#Labor 1
-#Author Yannick Schilling
+# Labor 1
+# Author Yannick Schilling
 ########################
-
 
 function show_help {
     echo "Usage: email_analysis.sh [-h|--help] [-c|--company] [FILE] [-e|--email] [FILE]"
@@ -11,42 +10,45 @@ function show_help {
     echo "Analyses the mailing list according to the commands as follows:"
     echo ""
     echo "  -h|--help: Show this help and quit"
-    echo "  -c|--company: Show count of occurences of each sender company"
-    echo "  -e|--email: Show adress and count of ocurrences of given mail-adress"
+    echo "  -c|--company: Show count of occurrences of each sender company"
+    echo "  -e|--email: Show address and count of occurrences of given email address"
     echo ""
 }
 
-#search for headers including the mail-adress. Space after "From" and including "@"
+# Function to count occurrences of email addresses
 count_mail(){
   grep "^From .*@" "$FILE" | cut -d " " -f 2 | cut -d " " -f 1 | sort -s | uniq -c | sort -rnr
 }
 
+# Function to count occurrences of sender companies
 count_company(){
   grep "^From .*@" "$FILE" | cut -d "@" -f 2 | cut -d " " -f 1 | sort -s | uniq -c | sort -rnr
 }
 
-while test $# -gt 0 ; do #while Argument > 0; do
-    case "$1" in
-    -h|--help)
-        show_help
-        exit
-        ;;
-    -e|--email) FILE="$2"; shift
+# Parse command line options
+case "$1" in
+-h|--help)
+    show_help
+    exit
+    ;;
+-e|--email)
+    FILE="$2"
+    count_mail
+    exit
+    ;;
+-c|--company)
+    FILE="$2"
+    count_company
+    exit
+    ;;
+*)
+    if [ -n "$1" ]; then #default case if argument 1 is not empty
+        FILE="$1"
         count_mail
-        ;;
-    -c|--company) FILE="$2"; shift
-        count_company
-        ;;
-    *)#exception for illegal input
-        echo "Error: Illegal option $1"
+    else
+        echo "Error: Illegal option"
         show_help
         exit 1
-        ;;
-    esac
-    shift
-done
-
-
-
-
-
+    fi
+    ;;
+esac
