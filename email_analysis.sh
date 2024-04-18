@@ -2,6 +2,7 @@
 ########################
 # Labor 1
 # Author Yannick Schilling
+# Date April 18th 2024
 ########################
 
 function show_help {
@@ -17,16 +18,22 @@ function show_help {
 
 # Function to count occurrences of email addresses
 count_mail(){
-  grep "^From .*@" "$FILE" | cut -d " " -f 2 | cut -d " " -f 1 | sort -s | uniq -c | sort -rnr
+  grep "^From .*@" "$FILE" | cut -d " " -f 2 | sort -s | uniq -c | sort -n
 }
 
 # Function to count occurrences of sender companies
 count_company(){
-  grep "^From .*@" "$FILE" | cut -d "@" -f 2 | cut -d " " -f 1 | sort -s | uniq -c | sort -rnr
+  grep "^From .*@" "$FILE" | cut -d "@" -f 2 | cut -d " " -f 1 | sort -s | uniq -c | sort -n
 }
 
 # Parse command line options
+
+
 case "$1" in
+*.txt)
+    count_mail
+    exit
+    ;;
 -h|--help)
     show_help
     exit
@@ -41,14 +48,9 @@ case "$1" in
     count_company
     exit
     ;;
-*)
-    if [ -n "$1" ]; then #default case if argument 1 is not empty
-        FILE="$1"
-        count_mail
-    else
-        echo "Error: Illegal option"
+
+*) echo "Error: Illegal option $1"
         show_help
         exit 1
-    fi
     ;;
 esac
