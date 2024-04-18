@@ -31,6 +31,7 @@ count_company(){
 
 case "$1" in
 *.txt)
+    FILE="$1"
     count_mail
     exit
     ;;
