@@ -1,57 +1,71 @@
-#include <linux/kernel.h>
+#include <linux/init.h>
 #include <linux/module.h>
+#include <linux/kernel.h>
 #include <linux/workqueue.h>
-#include <linux/sched.h>
+#include <linux/sched.h> // for current
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Your Name");
-MODULE_DESCRIPTION("Module to run work_handler recurrently");
+MODULE_DESCRIPTION("Kernel module for scheduling periodic statistics output");
+MODULE_VERSION("0.1");
 
-#define DEFAULT_DELAY_MS 1000
+static struct workqueue_struct *stat_workqueue;
+static struct delayed_work stat_work;
+static unsigned int delay_ms = 1000; // default delay in milliseconds
 
-static unsigned long delay_ms = DEFAULT_DELAY_MS;
+// Define your data structures for statistics recording here
+#define LATENCY_RECORD_COUNT 10
+struct latency_record {
+    unsigned int count;
+    unsigned long backtrace[10]; // assuming 10 entries for backtrace
+};
 
-module_param(delay_ms, ulong, 0644);
-MODULE_PARM_DESC(delay_ms, "Delay in milliseconds for work_handler execution");
-
-static struct workqueue_struct *wq = NULL;
-static DECLARE_DELAYED_WORK(dwork, work_handler);
-
-static void work_handler(struct work_struct *w) {
-    static int times = 0;
-    int i;
-    struct task_struct *task = current;
-    struct latency_record *latency_record = &task->latency_record;
-
-    printk(KERN_DEBUG "work_handler runs w:%pX the %d. time\n", w, times++);
-
-    if (latency_record) {
-        printk(KERN_DEBUG "Latency records for current process:\n");
-        for (i = 0; i < latency_record->count; ++i) {
-            printk(KERN_DEBUG "Latency %d: %llu\n", i, latency_record->latency[i]);
-        }
-    } else {
-        printk(KERN_DEBUG "No latency records available for current process\n");
+static void work_handler(struct work_struct *work) {
+    struct latency_record *record;
+    record = kmalloc(sizeof(struct latency_record), GFP_KERNEL);
+    if (!record) {
+        pr_err("Failed to allocate memory for latency record\n");
+        return;
     }
 
-    queue_delayed_work(wq, &dwork, msecs_to_jiffies(delay_ms));
+    // Populate your statistics data here
+    // For example, you can retrieve latency records from current process
+
+    // Example output
+    pr_info("Latency Records:\n");
+    pr_info("  Count: %u\n", record->count);
+    pr_info("  Backtrace[0]: %pX\n", (void *)record->backtrace[0]);
+
+    kfree(record);
+
+    // Reschedule the work
+    queue_delayed_work(stat_workqueue, &stat_work, msecs_to_jiffies(delay_ms));
 }
 
-static int __init init_module(void) {
-    printk(KERN_DEBUG "Hello from module\n");
-    wq = alloc_workqueue("test", WQ_UNBOUND, 1);
-    if (!wq) {
-        pr_err("Failed to allocate workqueue\n");
+static int __init mod_stat_scheduler_init(void) {
+    pr_info("mod_stat_scheduler module loaded\n");
+
+    stat_workqueue = create_workqueue("mod_stat_scheduler");
+    if (!stat_workqueue) {
+        pr_err("Failed to create workqueue\n");
         return -ENOMEM;
     }
-    queue_delayed_work(wq, &dwork, msecs_to_jiffies(delay_ms));
+
+    INIT_DELAYED_WORK(&stat_work, work_handler);
+    queue_delayed_work(stat_workqueue, &stat_work, msecs_to_jiffies(delay_ms));
+
     return 0;
 }
 
-static void __exit cleanup_module(void) {
-    cancel_delayed_work_sync(&dwork);
-    destroy_workqueue(wq);
+static void __exit mod_stat_scheduler_exit(void) {
+    cancel_delayed_work_sync(&stat_work);
+    flush_workqueue(stat_workqueue);
+    destroy_workqueue(stat_workqueue);
+    pr_info("mod_stat_scheduler module unloaded\n");
 }
 
-module_init(init_module);
-module_exit(cleanup_module);
+module_init(mod_stat_scheduler_init);
+module_exit(mod_stat_scheduler_exit);
+
+module_param(delay_ms, uint, S_IRUGO | S_IWUSR);
+MODULE_PARM_DESC(delay_ms, "Delay in milliseconds for periodic statistics output");
