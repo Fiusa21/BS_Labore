@@ -13,21 +13,17 @@ static struct workqueue_struct *stat_workqueue;
 static struct delayed_work stat_work;
 static unsigned int delay_ms = 1000; // default delay in milliseconds
 
-// Define your data structures for statistics recording here
-#define LATENCY_RECORD_COUNT 10
-struct latency_record {
-    unsigned int count;
-    unsigned long backtrace[10]; // assuming 10 entries for backtrace
-};
-
 static void work_handler(struct work_struct *work) {
+    struct task_struct *task = current;
     struct latency_record *record;
+
     record = kmalloc(sizeof(struct latency_record), GFP_KERNEL);
     if (!record) {
         pr_err("Failed to allocate memory for latency record\n");
         return;
     }
 
+    // Assuming latency_record is already defined in the kernel
     // Populate your statistics data here
     // For example, you can retrieve latency records from current process
 
