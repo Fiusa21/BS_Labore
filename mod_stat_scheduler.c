@@ -9,28 +9,30 @@ MODULE_AUTHOR("Your Name");
 MODULE_DESCRIPTION("Kernel module for scheduling periodic statistics output");
 MODULE_VERSION("0.1");
 
+struct latency_record {
+    unsigned int count;
+    unsigned long backtrace[10]; // assuming 10 entries for backtrace
+};
+
 static struct workqueue_struct *stat_workqueue;
 static struct delayed_work stat_work;
 static unsigned int delay_ms = 1000; // default delay in milliseconds
 
 static void work_handler(struct work_struct *work) {
-    struct task_struct *task = current;
     struct latency_record *record;
-
     record = kmalloc(sizeof(struct latency_record), GFP_KERNEL);
     if (!record) {
-        pr_err("Failed to allocate memory for latency record\n");
+        printk(KERN_ERR "Failed to allocate memory for latency record\n");
         return;
     }
 
-    // Assuming latency_record is already defined in the kernel
     // Populate your statistics data here
     // For example, you can retrieve latency records from current process
 
     // Example output
-    pr_info("Latency Records:\n");
-    pr_info("  Count: %u\n", record->count);
-    pr_info("  Backtrace[0]: %pX\n", (void *)record->backtrace[0]);
+    printk(KERN_INFO "Latency Records:\n");
+    printk(KERN_INFO "  Count: %u\n", record->count);
+    printk(KERN_INFO "  Backtrace[0]: %pX\n", (void *)record->backtrace[0]);
 
     kfree(record);
 
@@ -39,11 +41,11 @@ static void work_handler(struct work_struct *work) {
 }
 
 static int __init mod_stat_scheduler_init(void) {
-    pr_info("mod_stat_scheduler module loaded\n");
+    printk(KERN_INFO "mod_stat_scheduler module loaded\n");
 
     stat_workqueue = create_workqueue("mod_stat_scheduler");
     if (!stat_workqueue) {
-        pr_err("Failed to create workqueue\n");
+        printk(KERN_ERR "Failed to create workqueue\n");
         return -ENOMEM;
     }
 
@@ -57,7 +59,7 @@ static void __exit mod_stat_scheduler_exit(void) {
     cancel_delayed_work_sync(&stat_work);
     flush_workqueue(stat_workqueue);
     destroy_workqueue(stat_workqueue);
-    pr_info("mod_stat_scheduler module unloaded\n");
+    printk(KERN_INFO "mod_stat_scheduler module unloaded\n");
 }
 
 module_init(mod_stat_scheduler_init);
