@@ -1,51 +1,57 @@
-#include <linux/init.h>
-#include <linux/kernel.h>
-#include <linux/module.h>
-#include <linux/workqueue.h>
-#include <linux/sched.h>
+#!/bin/bash
+########################
+# Labor 1
+# Author Yannick Schilling
+# Date April 18th 2024
+########################
 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Yannick Schilling");
-MODULE_DESCRIPTION("Kernel module for periodic statistics output");
-
-#define DEFAULT_DELAY_MS 1000
-
-static struct delayed_work mod_work; 
-static int delay_ms = DEFAULT_DELAY_MS; 
-
-// function being called
-static void work_handler(struct work_struct *work) {
-    struct task_struct *task = current; // get current task (current is macro) 
-    unsigned int i;
-
-    // print out stats
-    printk(KERN_INFO "latency_record:\n"); 
-    for (i = 0; i < task->latency_record_count; i++) { // latency_record_count in latencytop.h
-        printk(KERN_INFO "count: %u, backtrace[0]: %pX\n", task->latency_record[i].count, (void*)task->latency_record[i].backtrace[0]);
-    }
-
-    // scedule next work with the assigned delay
-    schedule_delayed_work(&mod_work, msecs_to_jiffies(delay_ms)); // msecs_to_jiffies konvertiert Millisekunden in Jiffies (Zeiteinheit des Kernels)
+function show_help {
+    echo "Usage: email_analysis.sh [-h|--help] [-c|--company] [FILE] [-e|--email] [FILE]"
+    echo ""
+    echo "Analyses the mailing list according to the commands as follows:"
+    echo ""
+    echo "  -h|--help: Show this help and quit"
+    echo "  -c|--company: Show count of occurrences of each sender company"
+    echo "  -e|--email: Show address and count of occurrences of given email address"
+    echo ""
 }
 
-
-__init int init_module(void) {
-    printk(KERN_INFO "Module mod_stat_scheduler started\n");
-
-    // init deladyed work queue (form Kernel workqueue.h)
-    INIT_DELAYED_WORK(&mod_work, work_handler); 
-    // schedule first work
-    schedule_delayed_work(&mod_work, msecs_to_jiffies(delay_ms));
-
-    return 0; // Erfolgreiche Initialisierung
+# Function to count occurrences of email addresses
+count_mail(){
+  grep "^From .*@" "$FILE" | cut -d " " -f 2 | sort -s | uniq -c | sort -n
 }
 
-
-__exit void cleanup_module(void) {
-    // cancel complete work_queue
-    cancel_delayed_work_sync(&mod_work);
-    printk(KERN_INFO "Module stat_scheduler exited\n");
+# Function to count occurrences of sender companies
+count_company(){
+  grep "^From .*@" "$FILE" | cut -d "@" -f 2 | cut -d " " -f 1 | sort -s | uniq -c | sort -n
 }
 
-module_param(delay_ms, int, S_IRUGO); // module param, including rights
-MODULE_PARM_DESC(delay_ms, "Delay in milliseconds for statistics output");
+# Parse command line options
+
+
+case "$1" in
+*.txt)
+    FILE="$1"
+    count_mail
+    exit
+    ;;
+-h|--help)
+    show_help
+    exit
+    ;;
+-e|--email)
+    FILE="$2"
+    count_mail
+    exit
+    ;;
+-c|--company)
+    FILE="$2"
+    count_company
+    exit
+    ;;
+
+*) echo "Error: Illegal option $1"
+        show_help
+        exit 1
+    ;;
+esac
