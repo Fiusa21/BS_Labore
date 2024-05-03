@@ -4,51 +4,48 @@
 #include <linux/workqueue.h>
 #include <linux/sched.h>
 
-MODULE_LICENSE("GPL");          
-MODULE_AUTHOR("Name"); 
-MODULE_DESCRIPTION("Kernel module for periodic statistics output"); 
-MODULE_VERSION("0.1");         
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Yannick Schilling");
+MODULE_DESCRIPTION("Kernel module for periodic statistics output");
 
-#define DEFAULT_DELAY_MS 1000   
+#define DEFAULT_DELAY_MS 1000
 
 static struct delayed_work mod_work; 
 static int delay_ms = DEFAULT_DELAY_MS; 
 
-// Funktion, die beim Abarbeiten der Arbeitsschlange aufgerufen wird
+// function being called
 static void work_handler(struct work_struct *work) {
-    struct task_struct *task = current; // Aktuellen Task holen (current ist ein Makro)
+    struct task_struct *task = current; // get current task (current is macro) 
     unsigned int i;
 
-    // Ausgabe von Latenzstatistiken
-    printk(KERN_INFO "latency_record:\n");
-    for (i = 0; i < task->latency_record_count; i++) {
-        printk(KERN_INFO "count: %u, backtrace[0]: %pX\n", 
-               task->latency_record[i].count, 
-               (void*)task->latency_record[i].backtrace[0]);
+    // print out stats
+    printk(KERN_INFO "latency_record:\n"); 
+    for (i = 0; i < task->latency_record_count; i++) { // latency_record_count in latencytop.h
+        printk(KERN_INFO "count: %u, backtrace[0]: %pX\n", task->latency_record[i].count, (void*)task->latency_record[i].backtrace[0]);
     }
 
-    // Planen der nächsten Arbeit mit der definierten Verzögerung
+    // scedule next work with the assigned delay
     schedule_delayed_work(&mod_work, msecs_to_jiffies(delay_ms)); // msecs_to_jiffies konvertiert Millisekunden in Jiffies (Zeiteinheit des Kernels)
 }
 
-// Initialisierungsfunktion des Moduls
-__init int init_module(void) {
-    printk(KERN_INFO "Modul gestartet\n");
 
-    // Initialisierung der verzögerten Arbeitsschlange
-    INIT_DELAYED_WORK(&mod_work, work_handler); // Teil der Linux-Kernel-API (<linux/workqueue.h>)
-    // Planen der ersten Arbeit mit der definierten Verzögerung
+__init int init_module(void) {
+    printk(KERN_INFO "Module mod_stat_scheduler started\n");
+
+    // init deladyed work queue (form Kernel workqueue.h)
+    INIT_DELAYED_WORK(&mod_work, work_handler); 
+    // schedule first work
     schedule_delayed_work(&mod_work, msecs_to_jiffies(delay_ms));
 
     return 0; // Erfolgreiche Initialisierung
 }
 
-// Exit-Funktion des Moduls
+
 __exit void cleanup_module(void) {
-    // Synchrones Abbrechen der Arbeitsschlange und Warten auf deren Abschluss
+    // cancel complete work_queue
     cancel_delayed_work_sync(&mod_work);
-    printk(KERN_INFO "Modul beendet\n");
+    printk(KERN_INFO "Module stat_scheduler exited\n");
 }
 
-module_param(delay_ms, int, S_IRUGO); 
-MODULE_PARM_DESC(delay_ms, "Delay in milliseconds for statistics output"); // Beschreibung des Parameters delay_ms
+module_param(delay_ms, int, S_IRUGO); // module param, including rights
+MODULE_PARM_DESC(delay_ms, "Delay in milliseconds for statistics output");
