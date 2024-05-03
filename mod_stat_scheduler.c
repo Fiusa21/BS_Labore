@@ -1,69 +1,54 @@
+#include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/workqueue.h>
 #include <linux/sched.h>
 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Name");
-MODULE_DESCRIPTION("Module to schedule work_handler with specified delay and output latency records with backtraces");
+MODULE_LICENSE("GPL");          
+MODULE_AUTHOR("Name"); 
+MODULE_DESCRIPTION("Kernel module for periodic statistics output"); 
+MODULE_VERSION("0.1");         
 
-#define DEFAULT_DELAY_MS 1000
-#define LATENCY_RECORD_COUNT 32
+#define DEFAULT_DELAY_MS 1000   
 
-/*
- * Function definitions
- */
-static void work_handler(struct work_struct *w);
-static void output_latency_records(void);
+static struct delayed_work mod_work; 
+static int delay_ms = DEFAULT_DELAY_MS; 
 
-/*
- * Data declarations
- */
-static struct workqueue_struct *wq = NULL;
-static DECLARE_DELAYED_WORK(dwork, work_handler);
-static unsigned long delay = msecs_to_jiffies(DEFAULT_DELAY_MS);
+// Funktion, die beim Abarbeiten der Arbeitsschlange aufgerufen wird
+static void work_handler(struct work_struct *work) {
+    struct task_struct *task = current; // Aktuellen Task holen (current ist ein Makro)
+    unsigned int i;
 
-static int delay_ms = DEFAULT_DELAY_MS;
-module_param(delay_ms, int, 0644); // Module parameter for delay in milliseconds
-MODULE_PARM_DESC(delay_ms, "Delay in milliseconds for work_handler to run again");
-
-static void work_handler(struct work_struct *w) {
-    static int times = 0;
-    printk(KERN_DEBUG "work_handler runs w:%pX the %d. time\n", w, times++); // rather pr_debug()
-    output_latency_records();
-    queue_delayed_work(wq, &dwork, delay);
-}
-
-static void output_latency_records(void) {
-    int i;
-    struct task_struct *task = current;
-    struct sched_info *si = &task->sched_info;
-    u64 *latency_record = si->latency_record;
-
-    pr_info("Latency Records with Backtraces:\n");
-    for (i = 0; i < LATENCY_RECORD_COUNT; ++i) {
-        unsigned long backtrace_value = si->latency_record_backtrace[i][0];
-        pr_info("latency_record[%d]: %llu, backtrace[0]: %pX\n", i, latency_record[i], (void *)backtrace_value);
+    // Ausgabe von Latenzstatistiken
+    printk(KERN_INFO "latency_record:\n");
+    for (i = 0; i < task->latency_record_count; i++) {
+        printk(KERN_INFO "count: %u, backtrace[0]: %pX\n", 
+               task->latency_record[i].count, 
+               (void*)task->latency_record[i].backtrace[0]);
     }
+
+    // Planen der nächsten Arbeit mit der definierten Verzögerung
+    schedule_delayed_work(&mod_work, msecs_to_jiffies(delay_ms)); // msecs_to_jiffies konvertiert Millisekunden in Jiffies (Zeiteinheit des Kernels)
 }
 
-static int __init mod_stat_scheduler_init(void) {
-    printk(KERN_DEBUG "Initializing mod_stat_scheduler\n");
-    delay = msecs_to_jiffies(delay_ms);
-    wq = alloc_workqueue("test", WQ_UNBOUND, 1);
-    if (!wq) {
-        pr_err("Cannot allocate workqueue\n");
-        return -ENOMEM;
-    }
-    queue_delayed_work(wq, &dwork, delay);
-    return 0;
+// Initialisierungsfunktion des Moduls
+__init int init_module(void) {
+    printk(KERN_INFO "Modul gestartet\n");
+
+    // Initialisierung der verzögerten Arbeitsschlange
+    INIT_DELAYED_WORK(&mod_work, work_handler); // Teil der Linux-Kernel-API (<linux/workqueue.h>)
+    // Planen der ersten Arbeit mit der definierten Verzögerung
+    schedule_delayed_work(&mod_work, msecs_to_jiffies(delay_ms));
+
+    return 0; // Erfolgreiche Initialisierung
 }
 
-static void __exit mod_stat_scheduler_exit(void) {
-    cancel_delayed_work_sync(&dwork);
-    destroy_workqueue(wq);
-    printk(KERN_DEBUG "Exiting mod_stat_scheduler\n");
+// Exit-Funktion des Moduls
+__exit void cleanup_module(void) {
+    // Synchrones Abbrechen der Arbeitsschlange und Warten auf deren Abschluss
+    cancel_delayed_work_sync(&mod_work);
+    printk(KERN_INFO "Modul beendet\n");
 }
 
-module_init(mod_stat_scheduler_init);
-module_exit(mod_stat_scheduler_exit);
+module_param(delay_ms, int, S_IRUGO); 
+MODULE_PARM_DESC(delay_ms, "Delay in milliseconds for statistics output"); // Beschreibung des Parameters delay_ms
