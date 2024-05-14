@@ -24,7 +24,7 @@ static void work_handler(struct work_struct *work) {
         printk(KERN_INFO "count: %u, backtrace[0]: %pX\n", task->latency_record[i].count, (void*)task->latency_record[i].backtrace[0]);
     }
 
-    // scedule next work with the assigned delay
+    // schedule next work with the assigned delay
     schedule_delayed_work(&mod_work, msecs_to_jiffies(delay_ms)); // msecs_to_jiffies konvertiert Millisekunden in Jiffies (Zeiteinheit des Kernels)
 }
 
@@ -37,7 +37,7 @@ __init int init_module(void) {
     // schedule first work
     schedule_delayed_work(&mod_work, msecs_to_jiffies(delay_ms));
 
-    return 0; // Erfolgreiche Initialisierung
+    return 0; 
 }
 
 
