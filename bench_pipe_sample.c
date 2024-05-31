@@ -1,3 +1,7 @@
+/**************************************************
+/benchmark based on                            */
+
+
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,16 +47,18 @@ int main(int argc, char * argv[])
             ERROR("malloc", ENOMEM);
         memset(buffer, 0, sizes[sizes_num - 1]);
         pid_child = getpid();
+	
 
-        // Read data from the pipe
-        if (read(pipe_fd[0], buffer, sizes[sizes_num - 1]) == -1) {
-            perror("read");
-            exit(EXIT_FAILURE);
-        }
-        sleep(SLEEP_TIME);
-        printf("PID %d (CHILD): COPY DONE\n", pid_child);
-        return (EXIT_SUCCESS);
-    }
+	while (read(pipe_fd[0], buffer, sizes[sizes_num - 1]) > 0){
+		//Do nothing, just keep reading from pipe
+	}
+	
+	printf("PID %d (CHILD): COPY DONE\n", pid_child);
+	return (EXIT_SUCCESS);
+     }
+
+
+        
 
     /* PARENT PROCESS: measure the writing into the pipe */
     for (i = 0; i < sizes_num; i++) {
@@ -65,10 +71,8 @@ int main(int argc, char * argv[])
         sleep(SLEEP_TIME);
 
         gettimeofday(&tv_start, NULL);
-        for (j = 0; j < MEASUREMENTS; j++) {
-            unsigned long long start;
-            unsigned long long stop;
-            start = getrdtsc();
+	//maybe add ticks here aswell (minimum and max duration per message in microseconds)
+
 #ifdef USE_MEMSET
             {
                 char buffer[current_size];
@@ -92,7 +96,7 @@ int main(int argc, char * argv[])
                 }
             }
 #endif
-            stop = getrdtsc();
+           
         }
         gettimeofday(&tv_stop, NULL);
 
@@ -100,8 +104,8 @@ int main(int argc, char * argv[])
         time_delta_sec = ((tv_stop.tv_sec - tv_start.tv_sec) + ((tv_stop.tv_usec - tv_start.tv_usec)/(1000.0*1000.0)));
 
         // Output results
-        printf ("PID:%d Time (for %d measurements) for %d Bytes (%.2f MB/s)\n",
-                pid, MEASUREMENTS, current_size,
+        printf ("PID:%d, Time: %lf seconds (for %d measurements) for %d Bytes (%.2f MB/s)\n",
+                pid, time_delta_sec, MEASUREMENTS, current_size,
                 ((double) current_size * MEASUREMENTS)  / (1024.0*1024.0*time_delta_sec) );
     }
 
