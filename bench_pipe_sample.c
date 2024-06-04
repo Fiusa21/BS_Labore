@@ -71,7 +71,10 @@ int main(int argc, char * argv[])
         sleep(SLEEP_TIME);
 
         gettimeofday(&tv_start, NULL);
-	//maybe add ticks here aswell (minimum and max duration per message in microseconds)
+        for (j = 0; j < MEASUREMENTS; j++){
+            unsigned long long start;
+            unsigned long long stop;
+        }
 
 #ifdef USE_MEMSET
             {
@@ -95,11 +98,9 @@ int main(int argc, char * argv[])
                     }
                 }
             }
-#endif
-           
-        }
+#endif           
         gettimeofday(&tv_stop, NULL);
-
+    
         // Calculating the time elapsed
         time_delta_sec = ((tv_stop.tv_sec - tv_start.tv_sec) + ((tv_stop.tv_usec - tv_start.tv_usec)/(1000.0*1000.0)));
 
