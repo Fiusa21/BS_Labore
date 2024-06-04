@@ -11,8 +11,7 @@
 #include "bench_utils.h"
 
 #define SLEEP_TIME 1
-
-// #define USE_MEMSET
+#define MEASUREMENTS 10000  // Adjusted to a reasonable number for testing
 
 int main(int argc, char *argv[])
 {
@@ -65,37 +64,24 @@ int main(int argc, char *argv[])
 
         sleep(SLEEP_TIME);
 
+        char *buffer = malloc(current_size);
+        if (buffer == NULL)
+            ERROR("malloc", ENOMEM);
+        memset(buffer, 'a', current_size);
+
         gettimeofday(&tv_start, NULL);
         for (j = 0; j < MEASUREMENTS; j++)
         {
-            #ifdef USE_MEMSET
+            // Write data to the pipe
+            if (write(pipe_fd[1], buffer, current_size) != current_size)
             {
-                char buffer[current_size];
-                memset(buffer, 'a', current_size);
-                // Write data to the pipe
-                if (write(pipe_fd[1], buffer, current_size) == -1)
-                {
-                    perror("write");
-                    exit(EXIT_FAILURE);
-                }
+                perror("write");
+                exit(EXIT_FAILURE);
             }
-            #else
-            {
-                char c = 'a';
-                int k;
-                for (k = 0; k < current_size; k++)
-                {
-                    // Write data to the pipe
-                    if (write(pipe_fd[1], &c, 1) != 1)
-                    {
-                        perror("write");
-                        exit(EXIT_FAILURE);
-                    }
-                }
-            }
-            #endif
         }
         gettimeofday(&tv_stop, NULL);
+
+        free(buffer);
 
         // Calculating the time elapsed
         time_delta_sec = ((tv_stop.tv_sec - tv_start.tv_sec) + ((tv_stop.tv_usec - tv_start.tv_usec) / (1000.0 * 1000.0)));
