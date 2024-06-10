@@ -14,7 +14,7 @@
 
 #include "bench_utils.h"
 
-#define MEASUREMENTS (100)
+
 
 int main(int argc, char * argv[]) {
     const int sizes[] = {64, 256, 1024, 4096, 16384, 65536, 262144, 1048576, 4194304, 16777216};
