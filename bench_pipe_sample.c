@@ -14,6 +14,7 @@
 
 #include "bench_utils.h"
 
+#define MEASUREMENTS (100)
 
 int main(int argc, char * argv[]) {
     const int sizes[] = {64, 256, 1024, 4096, 16384, 65536, 262144, 1048576, 4194304, 16777216};
@@ -57,11 +58,6 @@ int main(int argc, char * argv[]) {
             ERROR("malloc", ENOMEM);
         memset(buffer, 0, MAX_SIZE);
 
-        DEBUG(printf("PID:%d (CHILD) waits\n", (int) pid));
-        ret = read(pipe_parent_to_child[0], &num_read, 1);  // Dummy read to wait for parent signal
-        if (ret == -1) ERROR("read", errno);
-
-        // Reading actual data
         for (int i = 0; i < sizes_num; i++) {
             int current_size = sizes[i];
             to_read = current_size;
@@ -70,7 +66,7 @@ int main(int argc, char * argv[]) {
                 if (ret == -1) ERROR("read", errno);
             }
         }
-        
+
         DEBUG(printf("PID:%d (CHILD) exits\n", (int) pid));
         free(buffer);
         exit(EXIT_SUCCESS);
