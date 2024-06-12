@@ -1,8 +1,5 @@
 /*
- * Small benchmark of Anonymous Memory Mmaps using Pipes for IPC.
- *
- * Author: Rainer Keller, HS Esslingen
- * Modified by: ChatGPT
+ * Small benchmark of UNIX-Pipes for IPC.
  */
 
 #include <unistd.h>
@@ -26,7 +23,7 @@
 
 int main(int argc, char * argv[])
 {
-    const int sizes[] = {128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288};
+    const int sizes[] = {64, 256, 1024, 4096, 16384, 65536, 262144, 1048576, 4194304, 16777216};
     const int sizes_num = sizeof(sizes) / sizeof(sizes[0]);
 #define MAX_SIZE sizes[sizes_num-1]
     pid_t pid = getpid();
@@ -127,9 +124,10 @@ int main(int argc, char * argv[])
         ticks_all -= max_ticks;
 
         time_delta_sec = ((tv_stop.tv_sec - tv_start.tv_sec) + ((tv_stop.tv_usec - tv_start.tv_usec) / (1000.0 * 1000.0)));
+	
 
-        printf("PID:%d time: min:%d max:%d Ticks Avg without min/max:%f Ticks (for %d measurements) for %d Bytes (%.2f MB/s)\n",
-               pid, min_ticks, max_ticks,
+        printf("duration: %lf PID: %d time: min:%d max:%d Ticks Avg without min/max:%f Ticks (for %d measurements) for %d Bytes (%.2f MB/s)\n;",
+               time_delta_sec, pid, min_ticks, max_ticks,
                (double) ticks_all / (MEASUREMENTS - 2.0), MEASUREMENTS, current_size,
                ((double) current_size * MEASUREMENTS) / (1024.0 * 1024.0 * time_delta_sec));
     }
